@@ -1,0 +1,553 @@
+openapi: 3.1.0
+info:
+  title: BookLeaf Author Support & Communication Portal API
+  version: 1.0.0
+  description: |
+    Full-Stack REST API for BookLeaf Publishing Author Support & Operations Portal.
+    Includes role-based author & admin portals, real-time ticket triage, and AI-assisted responses.
+servers:
+  - url: http://localhost:3001
+    description: Local Development Server
+
+paths:
+  /api/health:
+    get:
+      summary: System health check
+      responses:
+        '200':
+          description: Service health and OpenAI configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+                  service: { type: string, example: "bookleaf-backend" }
+                  timestamp: { type: string, format: date-time }
+                  openai_configured: { type: boolean, example: false }
+
+  /api/auth/login:
+    post:
+      summary: Authenticate user & issue JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, example: "priya.sharma@email.com" }
+                password: { type: string, example: "BookLeaf@123" }
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /api/auth/me:
+    get:
+      summary: Get currently authenticated user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /api/author/books:
+    get:
+      summary: List books owned by logged-in author
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of books with sales, royalties, and platform channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /api/author/royalties:
+    get:
+      summary: Get author's cumulative royalty stats and rollover notice
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Total earned, paid, pending, and rollover notice
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEarned: { type: number, example: 19908 }
+                  totalPaid: { type: number, example: 16338 }
+                  totalPending: { type: number, example: 3570 }
+                  isRollover: { type: boolean, example: false }
+                  threshold: { type: number, example: 1000 }
+                  currency: { type: string, example: "INR" }
+                  rolloverNotice: { type: string, nullable: true }
+
+  /api/author/tickets:
+    get:
+      summary: List support tickets submitted by logged-in author
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED]
+      responses:
+        '200':
+          description: Author's ticket summaries with last reply preview
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketSummary'
+    post:
+      summary: Create new support query (triggers non-blocking AI classification)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, description]
+              properties:
+                book_id: { type: string, format: uuid, nullable: true }
+                subject: { type: string, minLength: 3, example: "Delay in October royalty payout" }
+                description: { type: string, minLength: 10, example: "I have not yet received my October quarterly payout statement." }
+      responses:
+        '201':
+          description: Ticket created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /api/author/tickets/{id}:
+    get:
+      summary: Get full ticket conversation (author ownership strictly enforced)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Ticket details with author-visible replies (internal notes omitted)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /api/author/tickets/{id}/replies:
+    post:
+      summary: Submit author follow-up reply on an active ticket
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, example: "Thank you, here is the additional details." }
+      responses:
+        '201':
+          description: Reply posted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reply'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '409':
+          description: Ticket is closed or resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/tickets:
+    get:
+      summary: Admin support queue (sorted by priority desc, created_at asc)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED] }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: priority
+          in: query
+          schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW, UNSET] }
+        - name: assigned_to
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Filtered admin tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminTicketItem'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+
+  /api/admin/tickets/{id}:
+    get:
+      summary: Full admin ticket detail with author & book context, replies, internal notes, and AI logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Comprehensive admin ticket view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicketDetail'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /api/admin/tickets/{id}/replies:
+    post:
+      summary: Send admin reply visible to author (transitions OPEN -> IN_PROGRESS)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1 }
+      responses:
+        '201':
+          description: Reply sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reply'
+
+  /api/admin/tickets/{id}/notes:
+    post:
+      summary: Record confidential internal note (strictly invisible to author)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1 }
+      responses:
+        '201':
+          description: Internal note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalNote'
+
+  /api/admin/tickets/{id}/classify:
+    post:
+      summary: Manually trigger / re-run AI auto-classification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category: { type: string }
+                  priority: { type: string }
+                  ai_rationale: { type: string, nullable: true }
+                  ai_status: { type: string }
+
+  /api/admin/tickets/{id}/draft:
+    post:
+      summary: Generate or regenerate AI draft response using selective KB injection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Context-aware draft response with token audit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  draft: { type: string }
+                  tokens:
+                    type: object
+                    properties:
+                      prompt: { type: integer }
+                      completion: { type: integer }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    400BadRequest:
+      description: Invalid request parameters or validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    401Unauthorized:
+      description: Authentication required or token invalid/expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    403Forbidden:
+      description: Access denied for caller role or resource ownership violation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    404NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { type: string, enum: [AUTHOR, ADMIN] }
+        authorCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+
+    Book:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        book_id: { type: string, example: "BK001" }
+        author_id: { type: string, format: uuid }
+        title: { type: string }
+        isbn: { type: string, nullable: true }
+        genre: { type: string }
+        publication_date: { type: string, format: date-time, nullable: true }
+        status: { type: string, example: "Published & Live" }
+        mrp: { type: number, nullable: true }
+        royalty_per_copy: { type: number, nullable: true }
+        copies_sold: { type: integer }
+        royalty_earned: { type: number }
+        royalty_paid: { type: number }
+        royalty_pending: { type: number }
+        last_payout_date: { type: string, format: date-time, nullable: true }
+        print_partner: { type: string, nullable: true }
+        available_on:
+          type: array
+          items: { type: string }
+
+    Ticket:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        author_id: { type: string, format: uuid }
+        book_id: { type: string, format: uuid, nullable: true }
+        subject: { type: string }
+        description: { type: string }
+        category: { type: string }
+        priority: { type: string }
+        status: { type: string, enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED] }
+        ai_status: { type: string, enum: [OK, FAILED, SKIPPED] }
+        is_overridden: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    TicketSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        subject: { type: string }
+        description: { type: string }
+        category: { type: string }
+        priority: { type: string }
+        status: { type: string }
+        ai_status: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        replyCount: { type: integer }
+
+    TicketDetail:
+      allOf:
+        - $ref: '#/components/schemas/TicketSummary'
+        - type: object
+          properties:
+            book:
+              $ref: '#/components/schemas/Book'
+            replies:
+              type: array
+              items:
+                $ref: '#/components/schemas/Reply'
+
+    AdminTicketItem:
+      allOf:
+        - $ref: '#/components/schemas/TicketSummary'
+        - type: object
+          properties:
+            assigned_to: { type: string, nullable: true }
+            assignee:
+              type: object
+              nullable: true
+              properties:
+                id: { type: string }
+                name: { type: string }
+                email: { type: string }
+            author:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                email: { type: string }
+                author_code: { type: string, nullable: true }
+            internalNoteCount: { type: integer }
+
+    AdminTicketDetail:
+      allOf:
+        - $ref: '#/components/schemas/AdminTicketItem'
+        - type: object
+          properties:
+            book:
+              $ref: '#/components/schemas/Book'
+            replies:
+              type: array
+              items:
+                $ref: '#/components/schemas/Reply'
+            internal_notes:
+              type: array
+              items:
+                $ref: '#/components/schemas/InternalNote'
+            ai_logs:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  operation: { type: string }
+                  model: { type: string }
+                  prompt_tokens: { type: integer }
+                  completion_tokens: { type: integer }
+                  success: { type: boolean }
+
+    Reply:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        senderId: { type: string }
+        senderName: { type: string }
+        senderRole: { type: string, enum: [AUTHOR, ADMIN] }
+        created_at: { type: string, format: date-time }
+
+    InternalNote:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        senderId: { type: string }
+        senderName: { type: string }
+        created_at: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      properties:
+        status: { type: string, example: "error" }
+        statusCode: { type: integer, example: 400 }
+        message: { type: string }
+        details: { type: object, nullable: true }
