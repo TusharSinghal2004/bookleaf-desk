@@ -1,7 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { BookOpen, KeyRound, Mail, AlertCircle, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
+import { BookOpen, KeyRound, Mail, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+
+const PRESET_DEMOS = [
+  {
+    role: 'ADMIN',
+    title: 'Operations Admin',
+    desc: 'Triage queue, AI draft, internal notes',
+    email: 'admin@bookleaf.test',
+    pass: 'Admin@123',
+    badge: 'Operations HQ',
+  },
+  {
+    role: 'AUTHOR',
+    title: 'Priya Sharma (AUTH001)',
+    desc: '2 published books · ₹3,570 pending payout',
+    email: 'priya.sharma@email.com',
+    pass: 'BookLeaf@123',
+    badge: 'Published Author',
+  },
+  {
+    role: 'AUTHOR',
+    title: 'Sneha Kulkarni (AUTH007)',
+    desc: 'BK013 in Cover Design production stage',
+    email: 'sneha.kulkarni@email.com',
+    pass: 'BookLeaf@123',
+    badge: 'Pipeline Book',
+  },
+  {
+    role: 'AUTHOR',
+    title: 'Kavita Deshmukh (AUTH009)',
+    desc: 'BK016 has ₹850 rollover (< ₹1,000 threshold)',
+    email: 'kavita.deshmukh@email.com',
+    pass: 'BookLeaf@123',
+    badge: 'Rollover Notice',
+  },
+];
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +45,7 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('BookLeaf@123');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'demo' | 'manual'>('demo');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +54,6 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(email.trim(), password);
-      // Auth context sets user; redirect according to role
       const rawUser = localStorage.getItem('bookleaf_user');
       if (rawUser) {
         const u = JSON.parse(rawUser);
@@ -37,130 +72,186 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const setTestCredentials = (testEmail: string, testPass: string) => {
-    setEmail(testEmail);
-    setPassword(testPass);
+  const handleQuickLogin = async (presetEmail: string, presetPass: string) => {
+    setEmail(presetEmail);
+    setPassword(presetPass);
     setError(null);
+    setLoading(true);
+
+    try {
+      await login(presetEmail, presetPass);
+      const rawUser = localStorage.getItem('bookleaf_user');
+      if (rawUser) {
+        const u = JSON.parse(rawUser);
+        if (u.role === 'ADMIN') {
+          navigate('/admin/tickets');
+        } else {
+          navigate('/author/books');
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to login with selected account.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Branding Header */}
-        <div className="text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white mx-auto shadow-lg shadow-emerald-500/30 mb-4">
-            <BookOpen className="w-7 h-7" />
+    <div className="min-h-[88vh] flex items-center justify-center py-10 px-4 sm:px-6">
+      <div className="max-w-xl w-full space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white mx-auto shadow-md shadow-emerald-500/20">
+            <BookOpen className="w-6 h-6" />
           </div>
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             BookLeaf Portal
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Sign in to access author dashboard or operations support queue
+          </h1>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">
+            Author support, royalty tracking, and operations communication platform.
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-200/90 shadow-xl shadow-slate-200/40 space-y-6">
+        {/* Clean Container Card */}
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-lg shadow-slate-100 p-6 sm:p-8 space-y-6">
+          {/* Segmented Control: 1-Click Demo vs Manual Sign In */}
+          <div className="flex bg-slate-100/80 p-1 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('demo')}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'demo'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              1-Click Demo Personas
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('manual')}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'manual'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
+              Custom Email Sign In
+            </button>
+          </div>
+
           {error && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-800 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="author@email.com or admin@bookleaf.test"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                />
+          {activeTab === 'demo' ? (
+            /* 1-Click Demo Persona Grid (Instant Access) */
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-slate-500 mb-2">
+                Click any role to log in immediately and test the system:
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {PRESET_DEMOS.map((demo) => {
+                  const isAdmin = demo.role === 'ADMIN';
+                  return (
+                    <button
+                      key={demo.email}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin(demo.email, demo.pass)}
+                      className={`text-left p-4 rounded-2xl border transition-all hover:scale-[1.01] flex flex-col justify-between group ${
+                        isAdmin
+                          ? 'bg-indigo-50/50 hover:bg-indigo-50 border-indigo-200/80 hover:border-indigo-300'
+                          : 'bg-emerald-50/40 hover:bg-emerald-50 border-emerald-200/80 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-xs text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            {demo.title}
+                          </span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                              isAdmin
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {demo.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-snug">{demo.desc}</p>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-200/50 flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                        <span className="text-[10px] text-slate-400 font-mono truncate max-w-[140px]">
+                          {demo.email}
+                        </span>
+                        <span className="flex items-center gap-1 text-emerald-600 group-hover:translate-x-0.5 transition-transform text-xs">
+                          Enter <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Password
-              </label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                />
+          ) : (
+            /* Manual Email / Password Form */
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter author or admin email"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl shadow-md shadow-emerald-600/20 disabled:opacity-50 transition-all"
-            >
-              {loading ? 'Authenticating...' : 'Sign In'}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          {/* Quick-Fill Buttons for Evaluation */}
-          <div className="pt-4 border-t border-slate-100">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2 text-center">
-              Evaluator Quick-Fill Credentials
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setTestCredentials('admin@bookleaf.test', 'Admin@123')}
-                className="p-2 text-left rounded-xl bg-indigo-50/70 hover:bg-indigo-100/70 border border-indigo-200/80 text-indigo-900 transition-colors"
-              >
-                <div className="font-bold flex items-center gap-1 text-[11px]">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  Admin
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  />
                 </div>
-                <div className="text-[10px] text-indigo-700 truncate">admin@bookleaf.test</div>
-              </button>
+              </div>
 
               <button
-                type="button"
-                onClick={() => setTestCredentials('priya.sharma@email.com', 'BookLeaf@123')}
-                className="p-2 text-left rounded-xl bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 text-emerald-900 transition-colors"
+                type="submit"
+                disabled={loading}
+                className="w-full mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl shadow-md shadow-emerald-600/20 disabled:opacity-50 transition-all"
               >
-                <div className="font-bold flex items-center gap-1 text-[11px]">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  Author 1
-                </div>
-                <div className="text-[10px] text-emerald-700 truncate">priya.sharma@email.com</div>
+                {loading ? 'Authenticating...' : 'Sign In to Portal'}
+                <ArrowRight className="w-4 h-4" />
               </button>
+            </form>
+          )}
 
-              <button
-                type="button"
-                onClick={() => setTestCredentials('sneha.kulkarni@email.com', 'BookLeaf@123')}
-                className="p-2 text-left rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 transition-colors"
-              >
-                <div className="font-bold text-[11px]">Author 7 (BK013)</div>
-                <div className="text-[10px] text-slate-500 truncate">sneha.kulkarni@email.com</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTestCredentials('kavita.deshmukh@email.com', 'BookLeaf@123')}
-                className="p-2 text-left rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 transition-colors"
-              >
-                <div className="font-bold text-[11px]">Author 9 (BK015)</div>
-                <div className="text-[10px] text-slate-500 truncate">kavita.deshmukh@email.com</div>
-              </button>
-            </div>
+          <div className="text-center text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+            Seeded for evaluation: all authors use <span className="font-mono text-slate-600">BookLeaf@123</span> · admin uses <span className="font-mono text-slate-600">Admin@123</span>
           </div>
         </div>
       </div>

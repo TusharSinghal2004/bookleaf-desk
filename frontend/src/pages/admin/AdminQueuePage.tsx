@@ -7,7 +7,6 @@ import {
   Shield,
   BookOpen,
   Sparkles,
-  AlertTriangle,
   RefreshCw,
   Search,
 } from 'lucide-react';
@@ -86,7 +85,6 @@ export const AdminQueuePage: React.FC = () => {
     }
   };
 
-  // Filter client-side search query
   const filteredTickets = tickets?.filter((t) => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase();
@@ -106,17 +104,17 @@ export const AdminQueuePage: React.FC = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
             <Shield className="w-7 h-7 text-indigo-600" />
-            Author Support Operations Queue
+            Support Operations Queue
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Triaged queue sorted by priority descending (Critical first) and age ascending (oldest unresolved first).
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Prioritized by urgency (Critical first) and age (oldest unresolved first).
           </p>
         </div>
 
         <button
           onClick={() => refetch()}
           disabled={isRefetching}
-          className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
           Refresh Queue
@@ -124,42 +122,41 @@ export const AdminQueuePage: React.FC = () => {
       </div>
 
       {/* Filter and Search Toolbar */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 space-y-3">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-5 space-y-4">
+        {/* Top Search & Assignment Pills */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Search Box */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Search by author name, email, book title, or subject..."
+              placeholder="Filter by author name, book title, or subject..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
-          {/* Quick Assignment Toggle */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
             <button
               onClick={() => setAssignmentFilter('ALL')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                assignmentFilter === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                assignmentFilter === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setAssignmentFilter('ME')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                assignmentFilter === 'ME' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                assignmentFilter === 'ME' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
               }`}
             >
               Assigned to Me
             </button>
             <button
               onClick={() => setAssignmentFilter('UNASSIGNED')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                assignmentFilter === 'UNASSIGNED' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                assignmentFilter === 'UNASSIGNED' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
               }`}
             >
               Unassigned
@@ -167,16 +164,16 @@ export const AdminQueuePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Dropdown Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+        {/* Dropdown Filters with clear labels */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Status
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              Status Filter
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700"
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -187,13 +184,13 @@ export const AdminQueuePage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Priority
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              Priority Filter
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700"
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
             >
               {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
@@ -204,13 +201,13 @@ export const AdminQueuePage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Category
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+              Category Filter
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-700"
+              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -224,22 +221,22 @@ export const AdminQueuePage: React.FC = () => {
 
       {/* Ticket Table */}
       {isLoading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 flex justify-center">
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 flex justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         </div>
       ) : filteredTickets && filteredTickets.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <thead className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="py-3 px-4">Priority</th>
-                  <th className="py-3 px-4">Ticket & Subject</th>
-                  <th className="py-3 px-4">Author</th>
-                  <th className="py-3 px-4">Category / AI</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Assignee</th>
-                  <th className="py-3 px-4 text-right">Age</th>
+                  <th className="py-3.5 px-5">Priority</th>
+                  <th className="py-3.5 px-5">Subject & Context</th>
+                  <th className="py-3.5 px-5">Author</th>
+                  <th className="py-3.5 px-5">Category</th>
+                  <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5">Assignee</th>
+                  <th className="py-3.5 px-5 text-right">Age</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -249,11 +246,10 @@ export const AdminQueuePage: React.FC = () => {
                     <tr
                       key={t.id}
                       className={`hover:bg-slate-50/90 transition-colors ${
-                        isCritical ? 'bg-rose-50/20' : ''
+                        isCritical ? 'bg-rose-50/30' : ''
                       }`}
                     >
-                      {/* Priority with urgency indicator */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-4 px-5 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] ${getPriorityBadge(
                             t.priority
@@ -264,43 +260,40 @@ export const AdminQueuePage: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Subject + Book */}
-                      <td className="py-3.5 px-4 min-w-[240px]">
+                      <td className="py-4 px-5 min-w-[240px]">
                         <Link
                           to={`/admin/tickets/${t.id}`}
-                          className="font-bold text-slate-900 hover:text-indigo-600 transition-colors block text-sm"
+                          className="font-bold text-slate-900 hover:text-indigo-600 transition-colors block text-sm leading-snug"
                         >
                           {t.subject}
                         </Link>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500">
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
                           {t.book ? (
                             <span className="flex items-center gap-1 text-slate-600 font-medium">
                               <BookOpen className="w-3 h-3 text-slate-400" />
-                              {t.book.book_id} · {t.book.title}
+                              {t.book.title}
                             </span>
                           ) : (
-                            <span className="text-slate-400 italic">General Inquiry</span>
+                            <span className="italic">General Inquiry</span>
                           )}
                           <span>·</span>
-                          <span>{t.replyCount} replies</span>
+                          <span>{t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</span>
                           {t.internalNoteCount > 0 && (
-                            <span className="text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-semibold">
+                            <span className="text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded font-semibold text-[10px]">
                               {t.internalNoteCount} note{t.internalNoteCount > 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Author */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="font-semibold text-slate-800">{t.author.name}</div>
-                        <div className="text-[11px] text-slate-400">
+                      <td className="py-4 px-5 whitespace-nowrap">
+                        <div className="font-bold text-slate-800">{t.author.name}</div>
+                        <div className="text-[10px] text-slate-400">
                           {t.author.author_code || ''} {t.author.city ? `(${t.author.city})` : ''}
                         </div>
                       </td>
 
-                      {/* Category & AI Badges */}
-                      <td className="py-3.5 px-4 whitespace-nowrap space-y-1">
+                      <td className="py-4 px-5 whitespace-nowrap space-y-1">
                         <div className="font-medium text-slate-700">
                           {t.category.replace(/_/g, ' ')}
                         </div>
@@ -310,27 +303,20 @@ export const AdminQueuePage: React.FC = () => {
                               <Sparkles className="w-2.5 h-2.5" />
                               AI Triaged
                             </span>
-                          ) : t.ai_status === 'FAILED' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-                              <AlertTriangle className="w-2.5 h-2.5" />
-                              AI Failed
-                            </span>
                           ) : (
                             <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
                               Manual
                             </span>
                           )}
-
                           {t.is_overridden && (
-                            <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
                               Overridden
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-4 px-5 whitespace-nowrap">
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadge(
                             t.status
@@ -340,8 +326,7 @@ export const AdminQueuePage: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Assignee */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
+                      <td className="py-4 px-5 whitespace-nowrap">
                         {t.assignee ? (
                           <div className="flex items-center gap-1.5 font-medium text-slate-800">
                             <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
@@ -354,8 +339,7 @@ export const AdminQueuePage: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Age */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-right font-mono text-slate-500">
+                      <td className="py-4 px-5 whitespace-nowrap text-right font-mono text-slate-400 text-xs">
                         {new Date(t.created_at).toLocaleDateString('en-IN', {
                           month: 'short',
                           day: 'numeric',
@@ -369,8 +353,8 @@ export const AdminQueuePage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500">
-          No tickets found matching the filter criteria.
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center text-slate-400">
+          No tickets found matching the selected filters.
         </div>
       )}
     </div>
