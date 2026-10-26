@@ -4,9 +4,12 @@ import { Link } from 'react-router-dom';
 import { fetchAuthorTickets } from '../../api/author';
 import { LifeBuoy, PlusCircle, Clock, MessageSquare, ChevronRight, RefreshCw, BookOpen } from 'lucide-react';
 
+import { useAuth } from '../../context/AuthContext';
+
 const STATUS_FILTERS = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 export const MyTicketsPage: React.FC = () => {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [secondsAgo, setSecondsAgo] = useState(0);
 
@@ -17,9 +20,10 @@ export const MyTicketsPage: React.FC = () => {
     refetch,
     dataUpdatedAt,
   } = useQuery({
-    queryKey: ['authorTickets', activeFilter],
+    queryKey: ['authorTickets', user?.id, activeFilter],
     queryFn: () => fetchAuthorTickets(activeFilter === 'ALL' ? undefined : activeFilter),
     refetchInterval: 10000, // Near real-time 10s polling as requested
+    enabled: Boolean(user?.id),
   });
 
   // Keep track of seconds since last polling update

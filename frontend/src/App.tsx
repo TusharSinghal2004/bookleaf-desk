@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/LoginPage';
@@ -11,15 +11,7 @@ import { MyTicketsPage } from './pages/author/MyTicketsPage';
 import { TicketDetailPage } from './pages/author/TicketDetailPage';
 import { AdminQueuePage } from './pages/admin/AdminQueuePage';
 import { AdminTicketDetailPage } from './pages/admin/AdminTicketDetailPage';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+import { queryClient } from './lib/queryClient';
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;

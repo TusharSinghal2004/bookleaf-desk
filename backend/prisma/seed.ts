@@ -72,10 +72,11 @@ export async function seed() {
   await prisma.book.deleteMany();
   await prisma.user.deleteMany();
 
-  // 1. Seed Admin user
+  // 1. Seed Admin user with deterministic UUID
   const adminPasswordHash = await bcrypt.hash('Admin@123', 10);
   const admin = await prisma.user.create({
     data: {
+      id: '00000000-0000-4000-a000-000000000099',
       email: 'admin@bookleaf.test',
       password_hash: adminPasswordHash,
       role: Role.ADMIN,
@@ -89,13 +90,18 @@ export async function seed() {
   // 2. Hash author password once for performance
   const authorPasswordHash = await bcrypt.hash('BookLeaf@123', 10);
 
-  // 3. Seed Authors and Books
+  // 3. Seed Authors and Books with deterministic UUIDs
   let seededAuthorCount = 0;
   let seededBookCount = 0;
 
-  for (const rawAuthor of authors) {
+  for (let i = 0; i < authors.length; i++) {
+    const rawAuthor = authors[i];
+    const authorNum = String(i + 1).padStart(12, '0');
+    const deterministicAuthorId = `00000000-0000-4000-a000-${authorNum}`;
+
     const user = await prisma.user.create({
       data: {
+        id: deterministicAuthorId,
         author_code: rawAuthor.author_id,
         email: rawAuthor.email.toLowerCase().trim(),
         password_hash: authorPasswordHash,
@@ -109,8 +115,13 @@ export async function seed() {
     seededAuthorCount++;
 
     for (const rawBook of rawAuthor.books) {
+      seededBookCount++;
+      const bookNum = String(seededBookCount).padStart(12, '0');
+      const deterministicBookId = `00000000-0000-4000-b000-${bookNum}`;
+
       await prisma.book.create({
         data: {
+          id: deterministicBookId,
           book_id: rawBook.book_id,
           author_id: user.id,
           title: rawBook.title,
@@ -129,7 +140,6 @@ export async function seed() {
           available_on: JSON.stringify(rawBook.available_on || []),
         },
       });
-      seededBookCount++;
     }
   }
 

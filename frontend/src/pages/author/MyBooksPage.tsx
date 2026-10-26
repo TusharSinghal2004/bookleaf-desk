@@ -4,8 +4,10 @@ import { fetchAuthorBooks, fetchAuthorRoyalties } from '../../api/author';
 import { BookCard } from '../../components/author/BookCard';
 import { BookOpen, IndianRupee, AlertCircle, RefreshCw, PlusCircle, CheckCircle2, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const MyBooksPage: React.FC = () => {
+  const { user } = useAuth();
   const [filterTab, setFilterTab] = useState<'ALL' | 'PUBLISHED' | 'PRODUCTION'>('ALL');
 
   const {
@@ -14,16 +16,18 @@ export const MyBooksPage: React.FC = () => {
     error: booksError,
     refetch: refetchBooks,
   } = useQuery({
-    queryKey: ['authorBooks'],
+    queryKey: ['authorBooks', user?.id],
     queryFn: fetchAuthorBooks,
+    enabled: Boolean(user?.id),
   });
 
   const {
     data: royalties,
     isLoading: royaltiesLoading,
   } = useQuery({
-    queryKey: ['authorRoyalties'],
+    queryKey: ['authorRoyalties', user?.id],
     queryFn: fetchAuthorRoyalties,
+    enabled: Boolean(user?.id),
   });
 
   if (booksLoading || royaltiesLoading) {
