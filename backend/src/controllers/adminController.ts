@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import * as ticketService from '../services/ticketService';
+import * as aiService from '../services/aiService';
+import { prisma } from '../db/client';
 import { TicketCategory, TicketPriority, TicketStatus } from '@prisma/client';
+import { parsePlatforms } from '../utils/helpers';
 
 export const updateTicketSchema = z.object({
   status: z.nativeEnum(TicketStatus).optional(),
@@ -79,14 +82,48 @@ export async function addNote(req: Request, res: Response, next: NextFunction) {
 
 export async function classifyTicket(req: Request, res: Response, next: NextFunction) {
   try {
-    // Phase 5 will implement on-demand classification
-    // For now, return current ticket state or placeholder
-    const ticket = await ticketService.getAdminTicketById(req.params.id);
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: req.params.id },
+      include: { book: true, author: true },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    const context: aiService.AiAuthorContext = {
+      authorName: ticket.author.name,
+      authorCode: ticket.author.author_code,
+      bookTitle: ticket.book?.title,
+      bookStatus: ticket.book?.status,
+      royaltyPending: ticket.book?.royalty_pending,
+      lastPayoutDate: ticket.book?.last_payout_date?.toISOString(),
+      availableOn: ticket.book ? parsePlatforms(ticket.book.available_on) : [],
+      copiesSold: ticket.book?.copies_sold,
+    };
+
+    const result = await aiService.classifyTicket(
+      ticket.id,
+      ticket.subject,
+      ticket.description,
+      context
+    );
+
+    const updated = await prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        category: result.category,
+        priority: result.priority,
+        ai_rationale: result.rationale,
+        ai_status: result.ai_status,
+      },
+    });
+
     res.status(200).json({
-      category: ticket.category,
-      priority: ticket.priority,
-      ai_rationale: ticket.ai_rationale,
-      ai_status: ticket.ai_status,
+      category: updated.category,
+      priority: updated.priority,
+      ai_rationale: updated.ai_rationale,
+      ai_status: updated.ai_status,
     });
   } catch (error) {
     next(error);
@@ -95,10 +132,55 @@ export async function classifyTicket(req: Request, res: Response, next: NextFunc
 
 export async function draftResponse(req: Request, res: Response, next: NextFunction) {
   try {
-    // Phase 5 will connect to real OpenAI draft generator
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: req.params.id },
+      include: {
+        book: true,
+        author: true,
+        replies: {
+          orderBy: { created_at: 'desc' },
+          take: 2,
+          include: { sender: { select: { name: true, role: true } } },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket not found' });
+    }
+
+    // Format last 2 replies in chronological order for follow-up context
+    const recentReplies = ticket.replies
+      .reverse()
+      .map((r) => `${r.sender.name} (${r.sender.role}): ${r.body}`);
+
+    const context: aiService.AiAuthorContext = {
+      authorName: ticket.author.name,
+      authorCode: ticket.author.author_code,
+      bookTitle: ticket.book?.title,
+      bookStatus: ticket.book?.status,
+      royaltyPending: ticket.book?.royalty_pending,
+      lastPayoutDate: ticket.book?.last_payout_date?.toISOString(),
+      availableOn: ticket.book ? parsePlatforms(ticket.book.available_on) : [],
+      copiesSold: ticket.book?.copies_sold,
+      recentReplies,
+    };
+
+    const result = await aiService.draftResponse(
+      ticket.id,
+      ticket.subject,
+      ticket.description,
+      context,
+      ticket.category
+    );
+
     res.status(200).json({
-      draft: 'AI response drafting will be executed via OpenAI provider in Phase 5.',
-      tokens: { prompt: 0, completion: 0 },
+      draft: result.draft,
+      tokens: {
+        prompt: result.promptTokens,
+        completion: result.completionTokens,
+      },
+      selectedSections: result.selectedSections,
     });
   } catch (error) {
     next(error);
