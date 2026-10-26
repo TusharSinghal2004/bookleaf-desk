@@ -69,6 +69,10 @@ export async function fetchAuthorBooks(): Promise<Book[]> {
   return apiRequest<Book[]>('/author/books');
 }
 
+export async function fetchAuthorBookById(id: string): Promise<Book> {
+  return apiRequest<Book>(`/author/books/${id}`);
+}
+
 export async function fetchAuthorRoyalties(): Promise<RoyaltySummary> {
   return apiRequest<RoyaltySummary>('/author/royalties');
 }

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchAuthorBooks, createTicket } from '../../api/author';
 import { Send, Paperclip, X, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export const NewTicketPage: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedBookId, setSelectedBookId] = useState<string>('');
+  const location = useLocation();
+  const preselectedBookId = (location.state as { bookId?: string })?.bookId || '';
+  const [selectedBookId, setSelectedBookId] = useState<string>(preselectedBookId);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [attachmentName, setAttachmentName] = useState<string | null>(null);

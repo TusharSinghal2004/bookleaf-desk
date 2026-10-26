@@ -25,6 +25,15 @@ export async function getBooks(req: Request, res: Response, next: NextFunction) 
   }
 }
 
+export async function getBook(req: Request, res: Response, next: NextFunction) {
+  try {
+    const book = await bookService.getBookById(req.params.id, req.user!.userId);
+    res.status(200).json(book);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getRoyalties(req: Request, res: Response, next: NextFunction) {
   try {
     const summary = await royaltyService.getAuthorRoyaltySummary(req.user!.userId);

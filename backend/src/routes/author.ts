@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getBooks,
+  getBook,
   getRoyalties,
   getTickets,
   createTicket,
@@ -20,6 +21,7 @@ const router = Router();
 router.use(authenticate, requireRole(Role.AUTHOR));
 
 router.get('/books', getBooks);
+router.get('/books/:id', getBook);
 router.get('/royalties', getRoyalties);
 router.get('/tickets', getTickets);
 router.post('/tickets', validate({ body: createTicketSchema }), createTicket);

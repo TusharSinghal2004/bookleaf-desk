@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { MyBooksPage } from './pages/author/MyBooksPage';
+import { BookDetailPage } from './pages/author/BookDetailPage';
 import { NewTicketPage } from './pages/author/NewTicketPage';
 import { MyTicketsPage } from './pages/author/MyTicketsPage';
 import { TicketDetailPage } from './pages/author/TicketDetailPage';
@@ -80,6 +81,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute allowedRole="AUTHOR">
                     <MyBooksPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/author/books/:id"
+                element={
+                  <ProtectedRoute allowedRole="AUTHOR">
+                    <BookDetailPage />
                   </ProtectedRoute>
                 }
               />
