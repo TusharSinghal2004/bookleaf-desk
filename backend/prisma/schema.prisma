@@ -1,0 +1,146 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  AUTHOR
+  ADMIN
+}
+
+enum TicketCategory {
+  ROYALTY_AND_PAYMENTS
+  ISBN_AND_METADATA_ISSUES
+  PRINTING_AND_QUALITY
+  DISTRIBUTION_AND_AVAILABILITY
+  BOOK_STATUS_AND_PRODUCTION_UPDATES
+  GENERAL_INQUIRY
+  UNCLASSIFIED
+}
+
+enum TicketPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  UNSET
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum AiStatus {
+  OK
+  FAILED
+  SKIPPED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  author_code   String?   @unique // e.g. "AUTH001"
+  email         String    @unique
+  password_hash String
+  role          Role      @default(AUTHOR)
+  name          String
+  phone         String?
+  city          String?
+  joined_date   DateTime? @default(now())
+  created_at    DateTime  @default(now())
+
+  books            Book[]
+  tickets          Ticket[]       @relation("AuthorTickets")
+  assigned_tickets Ticket[]       @relation("AssignedAdminTickets")
+  replies          Reply[]        @relation("SentReplies")
+  internal_notes   InternalNote[] @relation("SentNotes")
+}
+
+model Book {
+  id               String    @id @default(uuid())
+  book_id          String    @unique // e.g. "BK001"
+  author_id        String
+  title            String
+  isbn             String?
+  genre            String
+  publication_date DateTime?
+  status           String    // e.g. "Published & Live", "In Production - Cover Design"
+  mrp              Float?
+  royalty_per_copy Float?
+  copies_sold      Int       @default(0)
+  royalty_earned   Float     @default(0)
+  royalty_paid     Float     @default(0)
+  royalty_pending  Float     @default(0)
+  last_payout_date DateTime?
+  print_partner    String?
+  available_on     String    @default("[]") // JSON stringified array of platform strings
+
+  author  User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+}
+
+model Ticket {
+  id            String         @id @default(uuid())
+  author_id     String
+  book_id       String?
+  subject       String
+  description   String
+  category      TicketCategory @default(UNCLASSIFIED)
+  priority      TicketPriority @default(UNSET)
+  ai_rationale  String?
+  ai_status     AiStatus       @default(SKIPPED)
+  is_overridden Boolean        @default(false)
+  status        TicketStatus   @default(OPEN)
+  assigned_to   String?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  author         User           @relation("AuthorTickets", fields: [author_id], references: [id], onDelete: Cascade)
+  book           Book?          @relation(fields: [book_id], references: [id], onDelete: SetNull)
+  assignee       User?          @relation("AssignedAdminTickets", fields: [assigned_to], references: [id], onDelete: SetNull)
+  replies        Reply[]
+  internal_notes InternalNote[]
+  ai_logs        AILog[]
+}
+
+model Reply {
+  id         String   @id @default(uuid())
+  ticket_id  String
+  sender_id  String   // Sender ID (Admin or Author)
+  body       String
+  created_at DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender User   @relation("SentReplies", fields: [sender_id], references: [id], onDelete: Cascade)
+}
+
+model InternalNote {
+  id         String   @id @default(uuid())
+  ticket_id  String
+  sender_id  String   // Admin who authored the internal note
+  body       String
+  created_at DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+  sender User   @relation("SentNotes", fields: [sender_id], references: [id], onDelete: Cascade)
+}
+
+model AILog {
+  id                String   @id @default(uuid())
+  ticket_id         String
+  operation         String   // "CLASSIFY" | "DRAFT"
+  model             String   // e.g. "gpt-4o-mini"
+  prompt_tokens     Int      @default(0)
+  completion_tokens Int      @default(0)
+  success           Boolean
+  error             String?
+  created_at        DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticket_id], references: [id], onDelete: Cascade)
+}
