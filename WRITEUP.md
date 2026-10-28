@@ -1,6 +1,6 @@
 # Technical Write-Up: Engineering Approach & Production Evolution
 
-**Author:** Antigravity Full-Stack Submission  
+**Author:** Tushar Singhal (Full-Stack Developer Candidate)  
 **Project:** BookLeaf Author Support & Communication Portal  
 
 ---

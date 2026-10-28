@@ -2,9 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchAuthorTickets } from '../../api/author';
-import { LifeBuoy, PlusCircle, Clock, MessageSquare, ChevronRight, RefreshCw, BookOpen } from 'lucide-react';
-
+import {
+  LifeBuoy,
+  PlusCircle,
+  Clock,
+  MessageSquare,
+  ChevronRight,
+  RefreshCw,
+  BookOpen,
+  BookMarked,
+  ChevronDown,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { KNOWLEDGE_BASE_ARTICLES } from '../../data/knowledgeBase';
 
 const STATUS_FILTERS = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
@@ -12,6 +22,7 @@ export const MyTicketsPage: React.FC = () => {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const [expandedKbId, setExpandedKbId] = useState<string | null>(null);
 
   const {
     data: tickets,
@@ -22,11 +33,10 @@ export const MyTicketsPage: React.FC = () => {
   } = useQuery({
     queryKey: ['authorTickets', user?.id, activeFilter],
     queryFn: () => fetchAuthorTickets(activeFilter === 'ALL' ? undefined : activeFilter),
-    refetchInterval: 10000, // Near real-time 10s polling as requested
+    refetchInterval: 10000,
     enabled: Boolean(user?.id),
   });
 
-  // Keep track of seconds since last polling update
   useEffect(() => {
     setSecondsAgo(0);
     const interval = setInterval(() => {
@@ -38,34 +48,34 @@ export const MyTicketsPage: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'OPEN':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'text-emerald-400 bg-emerald-950/60 border border-emerald-500/40';
       case 'IN_PROGRESS':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        return 'text-indigo-300 bg-indigo-950/60 border border-indigo-500/40';
       case 'RESOLVED':
-        return 'bg-teal-50 text-teal-700 border-teal-200';
+        return 'text-teal-300 bg-teal-950/60 border border-teal-500/40';
       case 'CLOSED':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return 'text-neutral-500 bg-neutral-900 border border-neutral-800';
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'text-neutral-400 bg-neutral-900 border border-neutral-800';
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header with 10s Polling Indicator */}
+      {/* Header with Polling Indicator */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <LifeBuoy className="w-7 h-7 text-emerald-600" />
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <LifeBuoy className="w-6 h-6 text-emerald-400" />
             Support Queries & Tickets
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-neutral-400">
               Track resolution progress and communications with the BookLeaf team.
             </p>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live (10s polling) · updated {secondsAgo}s ago
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live · {secondsAgo}s ago
             </span>
           </div>
         </div>
@@ -74,16 +84,16 @@ export const MyTicketsPage: React.FC = () => {
           <button
             onClick={() => refetch()}
             disabled={isRefetching}
-            className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl transition-colors disabled:opacity-50"
+            className="p-2 bg-black border border-neutral-800 hover:bg-neutral-900 text-neutral-300 rounded-xl transition-colors disabled:opacity-50 cursor-pointer"
             title="Refresh now"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
           </button>
           <Link
             to="/author/tickets/new"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
           >
-            <PlusCircle className="w-4 h-4" />
+            <PlusCircle className="w-3.5 h-3.5" />
             New Query
           </Link>
         </div>
@@ -95,10 +105,10 @@ export const MyTicketsPage: React.FC = () => {
           <button
             key={f}
             onClick={() => setActiveFilter(f)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
               activeFilter === f
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                ? 'bg-neutral-900 text-white border border-neutral-700'
+                : 'bg-black text-neutral-400 border border-neutral-900 hover:text-white'
             }`}
           >
             {f === 'ALL' ? 'All Tickets' : f.replace('_', ' ')}
@@ -108,87 +118,143 @@ export const MyTicketsPage: React.FC = () => {
 
       {/* Ticket List */}
       {isLoading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+        <div className="bg-black rounded-2xl border border-neutral-800 p-12 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
         </div>
       ) : tickets && tickets.length > 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100">
+        <div className="bg-black rounded-2xl border border-neutral-900 overflow-hidden divide-y divide-neutral-900 animate-fade-in">
           {tickets.map((t) => (
             <Link
               key={t.id}
               to={`/author/tickets/${t.id}`}
-              className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors group"
+              className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black hover:bg-neutral-950/80 transition-colors group cursor-pointer"
             >
-              <div className="flex-1 min-w-0 space-y-1.5">
+              <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadge(
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded ${getStatusBadge(
                       t.status
                     )}`}
                   >
                     {t.status.replace('_', ' ')}
                   </span>
-                  {t.category && t.category !== 'UNCLASSIFIED' && (
-                    <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                      {t.category.replace(/_/g, ' ')}
-                    </span>
-                  )}
                   {t.book && (
-                    <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                      <BookOpen className="w-3 h-3 text-slate-400" />
-                      {t.book.book_id}: {t.book.title}
+                    <span className="text-[11px] text-neutral-400 font-medium flex items-center gap-1">
+                      <BookOpen className="w-3 h-3 text-neutral-500" />
+                      {t.book.title}
                     </span>
                   )}
+                  <span className="text-[11px] text-neutral-600 font-mono">
+                    #{t.id.slice(0, 8)}
+                  </span>
                 </div>
 
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-emerald-700 transition-colors truncate">
+                <h3 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition-colors truncate">
                   {t.subject}
                 </h3>
 
-                <p className="text-xs text-slate-500 line-clamp-1">{t.description}</p>
+                <p className="text-xs text-neutral-400 line-clamp-1">{t.description}</p>
 
                 {t.lastReply && (
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs text-slate-700 mt-2 flex items-start gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="text-[11px] text-neutral-400 mt-1 flex items-center gap-1.5">
+                    <MessageSquare className="w-3 h-3 text-emerald-400 shrink-0" />
                     <span className="truncate">
-                      <span className="font-semibold text-slate-900">{t.lastReply.senderName}:</span>{' '}
+                      <span className="text-neutral-300 font-medium">{t.lastReply.senderName}:</span>{' '}
                       {t.lastReply.body}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-slate-400 shrink-0 self-end sm:self-center">
+              <div className="flex items-center gap-3 text-xs text-neutral-500 shrink-0 self-end sm:self-center">
                 <div className="text-right">
-                  <div className="flex items-center gap-1 font-medium text-slate-500">
-                    <Clock className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-1 text-[11px]">
+                    <Clock className="w-3 h-3" />
                     {new Date(t.created_at).toLocaleDateString('en-IN', {
                       month: 'short',
                       day: 'numeric',
                     })}
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[10px] text-neutral-600">
                     {t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-800 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-neutral-600 group-hover:text-white transition-colors" />
               </div>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-            <LifeBuoy className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-bold text-slate-800">No support tickets found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+        <div className="bg-black rounded-2xl border border-neutral-900 p-10 text-center space-y-2">
+          <LifeBuoy className="w-6 h-6 text-neutral-600 mx-auto" />
+          <h3 className="text-sm font-semibold text-white">No support tickets found</h3>
+          <p className="text-xs text-neutral-500 max-w-sm mx-auto">
             {activeFilter === 'ALL'
               ? 'You have not submitted any support tickets yet. Click "New Query" if you need assistance.'
               : `No tickets currently match the "${activeFilter.replace('_', ' ')}" status.`}
           </p>
         </div>
       )}
+
+      {/* Author Knowledge Base & Guidelines Section */}
+      <div className="bg-black rounded-2xl border border-neutral-900 p-5 space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-900">
+          <div className="flex items-center gap-2">
+            <BookMarked className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-sm font-semibold text-white">
+              Author Knowledge Base & Policy Guidelines
+            </h2>
+          </div>
+          <span className="text-[11px] text-neutral-500">Official Operational Policies</span>
+        </div>
+
+        <p className="text-xs text-neutral-400">
+          Read BookLeaf's official policy rules below for immediate answers regarding royalties, turnaround times, reprint guarantees, and distribution SLAs.
+        </p>
+
+        <div className="space-y-2 pt-1">
+          {KNOWLEDGE_BASE_ARTICLES.map((article) => {
+            const isExpanded = expandedKbId === article.id;
+            return (
+              <div
+                key={article.id}
+                className="rounded-xl border border-neutral-900 bg-neutral-950/60 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpandedKbId(isExpanded ? null : article.id)}
+                  className="w-full p-3 flex items-center justify-between text-left text-xs hover:bg-neutral-900/60 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-white truncate">{article.title}</span>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.2 rounded font-mono shrink-0">
+                      SLA: {article.slaOrTurnaround.split(';')[0]}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-neutral-500 transition-transform ${
+                      isExpanded ? 'rotate-180 text-emerald-400' : ''
+                    }`}
+                  />
+                </button>
+
+                {isExpanded && (
+                  <div className="p-3.5 pt-0 text-xs border-t border-neutral-900/80 space-y-2 mt-1">
+                    <p className="text-neutral-300 leading-relaxed text-xs">
+                      {article.summary}
+                    </p>
+                    <ul className="space-y-1 text-neutral-400 text-[11px] list-disc list-inside">
+                      {article.keyPoints.map((point, idx) => (
+                        <li key={idx}>{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

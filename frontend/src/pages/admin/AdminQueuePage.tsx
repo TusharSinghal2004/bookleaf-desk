@@ -4,11 +4,17 @@ import { Link } from 'react-router-dom';
 import { fetchAdminTickets } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Shield,
   BookOpen,
   Sparkles,
   RefreshCw,
   Search,
+  User,
+  Calendar,
+  MessageSquare,
+  ArrowRight,
+  LayoutList,
+  Table as TableIcon,
+  LayoutDashboard,
 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -32,6 +38,7 @@ export const AdminQueuePage: React.FC = () => {
   const [priority, setPriority] = useState('ALL');
   const [assignmentFilter, setAssignmentFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const {
     data: tickets,
@@ -55,33 +62,77 @@ export const AdminQueuePage: React.FC = () => {
     refetchInterval: 15000,
   });
 
-  const getPriorityBadge = (p: string) => {
+  const renderPriorityBadge = (p: string) => {
     switch (p) {
       case 'CRITICAL':
-        return 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold ring-1 ring-rose-400/40';
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-950/70 text-rose-300 border border-rose-500/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+            Critical
+          </span>
+        );
       case 'HIGH':
-        return 'bg-amber-100 text-amber-800 border-amber-300 font-bold';
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-950/70 text-amber-300 border border-amber-500/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            High
+          </span>
+        );
       case 'MEDIUM':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-950/50 text-blue-300 border border-blue-500/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            Medium
+          </span>
+        );
       case 'LOW':
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-900 text-neutral-400 border border-neutral-800">
+            <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+            Low
+          </span>
+        );
       default:
-        return 'bg-slate-100 text-slate-400 border-slate-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-neutral-500">
+            Unset
+          </span>
+        );
     }
   };
 
-  const getStatusBadge = (s: string) => {
+  const renderStatusBadge = (s: string) => {
     switch (s) {
       case 'OPEN':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40">
+            Open
+          </span>
+        );
       case 'IN_PROGRESS':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-indigo-300 bg-indigo-950/60 border border-indigo-500/40">
+            In Progress
+          </span>
+        );
       case 'RESOLVED':
-        return 'bg-teal-50 text-teal-700 border-teal-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold text-teal-300 bg-teal-950/60 border border-teal-500/40">
+            Resolved
+          </span>
+        );
       case 'CLOSED':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-neutral-500 bg-neutral-900 border border-neutral-800">
+            Closed
+          </span>
+        );
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-neutral-400">
+            {s.replace('_', ' ')}
+          </span>
+        );
     }
   };
 
@@ -102,116 +153,135 @@ export const AdminQueuePage: React.FC = () => {
       {/* Queue Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Shield className="w-7 h-7 text-indigo-600" />
-            Support Operations Queue
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <LayoutDashboard className="w-6 h-6 text-indigo-400" />
+            Admin Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Prioritized by urgency (Critical first) and age (oldest unresolved first).
+          <p className="text-xs text-neutral-400 mt-1">
+            Support queue prioritized by urgency and status.
           </p>
         </div>
 
-        <button
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition-colors"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
-          Refresh Queue
-        </button>
+        <div className="flex items-center gap-2.5">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-black border border-neutral-800 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-neutral-900 text-white border border-neutral-700'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-neutral-900 text-white border border-neutral-700'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <TableIcon className="w-3.5 h-3.5" />
+              Table
+            </button>
+          </div>
+
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-black border border-neutral-800 hover:bg-neutral-900 text-neutral-300 hover:text-white text-xs font-medium rounded-xl transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Filter and Search Toolbar */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-5 space-y-4">
-        {/* Top Search & Assignment Pills */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* Compact Unified Filter Toolbar */}
+      <div className="bg-black rounded-2xl border border-neutral-800 p-4 space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          {/* Search Box */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <Search className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Filter by author name, book title, or subject..."
+              placeholder="Search by author, subject, book, or author code..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-800 text-xs bg-black text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-600"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
-            <button
-              onClick={() => setAssignmentFilter('ALL')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
-                assignmentFilter === 'ALL' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setAssignmentFilter('ME')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
-                assignmentFilter === 'ME' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              Assigned to Me
-            </button>
-            <button
-              onClick={() => setAssignmentFilter('UNASSIGNED')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
-                assignmentFilter === 'UNASSIGNED' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
-              }`}
-            >
-              Unassigned
-            </button>
+          {/* Assignment Pills */}
+          <div className="flex items-center bg-black p-1 rounded-xl border border-neutral-800 shrink-0">
+            {(['ALL', 'ME', 'UNASSIGNED'] as const).map((mode) => {
+              const label =
+                mode === 'ALL'
+                  ? 'All'
+                  : mode === 'ME'
+                  ? 'My Tickets'
+                  : 'Unassigned';
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setAssignmentFilter(mode)}
+                  className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                    assignmentFilter === mode
+                      ? 'bg-neutral-900 text-white border border-neutral-700'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Dropdown Filters with clear labels */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100">
+        {/* Filters Row: Status, Priority, Category */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-neutral-900">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Status Filter
-            </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
+              className="w-full px-2.5 py-1.5 rounded-lg border border-neutral-800 text-xs bg-black text-neutral-200 focus:outline-none focus:border-neutral-600"
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s === 'ALL' ? 'All Statuses' : s.replace('_', ' ')}
+                <option key={s} value={s} className="bg-black text-white">
+                  {s === 'ALL' ? 'Status: All' : `Status: ${s.replace('_', ' ')}`}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Priority Filter
-            </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
+              className="w-full px-2.5 py-1.5 rounded-lg border border-neutral-800 text-xs bg-black text-neutral-200 focus:outline-none focus:border-neutral-600"
             >
               {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {p === 'ALL' ? 'All Priorities' : p}
+                <option key={p} value={p} className="bg-black text-white">
+                  {p === 'ALL' ? 'Priority: All' : `Priority: ${p}`}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-              Category Filter
-            </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs bg-white text-slate-800"
+              className="w-full px-2.5 py-1.5 rounded-lg border border-neutral-800 text-xs bg-black text-neutral-200 focus:outline-none focus:border-neutral-600"
             >
               {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c === 'ALL' ? 'All Categories' : c.replace(/_/g, ' ')}
+                <option key={c} value={c} className="bg-black text-white">
+                  {c === 'ALL' ? 'Category: All' : `Category: ${c.replace(/_/g, ' ')}`}
                 </option>
               ))}
             </select>
@@ -219,141 +289,188 @@ export const AdminQueuePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Ticket Table */}
+      {/* Ticket List / Table Container */}
       {isLoading ? (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 flex justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="bg-black rounded-2xl border border-neutral-800 p-12 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
         </div>
       ) : filteredTickets && filteredTickets.length > 0 ? (
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="py-3.5 px-5">Priority</th>
-                  <th className="py-3.5 px-5">Subject & Context</th>
-                  <th className="py-3.5 px-5">Author</th>
-                  <th className="py-3.5 px-5">Category</th>
-                  <th className="py-3.5 px-5">Status</th>
-                  <th className="py-3.5 px-5">Assignee</th>
-                  <th className="py-3.5 px-5 text-right">Age</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredTickets.map((t) => {
-                  const isCritical = t.priority === 'CRITICAL';
-                  return (
-                    <tr
-                      key={t.id}
-                      className={`hover:bg-slate-50/90 transition-colors ${
-                        isCritical ? 'bg-rose-50/30' : ''
-                      }`}
-                    >
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] ${getPriorityBadge(
-                            t.priority
-                          )}`}
-                        >
-                          {isCritical && <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />}
-                          {t.priority}
+        viewMode === 'cards' ? (
+          /* ========================================================= */
+          /* CLEAN CARD VIEW                                           */
+          /* ========================================================= */
+          <div className="space-y-3 animate-fade-in">
+            {filteredTickets.map((t) => {
+              const isCritical = t.priority === 'CRITICAL';
+
+              return (
+                <Link
+                  key={t.id}
+                  to={`/admin/tickets/${t.id}`}
+                  className={`p-4 rounded-xl bg-black border hover:border-neutral-700 transition-colors block space-y-2.5 group cursor-pointer ${
+                    isCritical
+                      ? 'border-rose-500/60'
+                      : 'border-neutral-900'
+                  }`}
+                >
+                  {/* Top Meta Line */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      {renderPriorityBadge(t.priority)}
+                      {renderStatusBadge(t.status)}
+                      <span className="text-neutral-500 font-mono text-[11px]">
+                        #{t.id.slice(0, 8)}
+                      </span>
+                      {t.ai_status === 'OK' && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400/80">
+                          <Sparkles className="w-3 h-3" />
+                          AI
                         </span>
-                      </td>
+                      )}
+                    </div>
 
-                      <td className="py-4 px-5 min-w-[240px]">
-                        <Link
-                          to={`/admin/tickets/${t.id}`}
-                          className="font-bold text-slate-900 hover:text-indigo-600 transition-colors block text-sm leading-snug"
-                        >
-                          {t.subject}
-                        </Link>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
-                          {t.book ? (
-                            <span className="flex items-center gap-1 text-slate-600 font-medium">
-                              <BookOpen className="w-3 h-3 text-slate-400" />
-                              {t.book.title}
-                            </span>
-                          ) : (
-                            <span className="italic">General Inquiry</span>
-                          )}
-                          <span>·</span>
-                          <span>{t.replyCount} {t.replyCount === 1 ? 'reply' : 'replies'}</span>
-                          {t.internalNoteCount > 0 && (
-                            <span className="text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded font-semibold text-[10px]">
-                              {t.internalNoteCount} note{t.internalNoteCount > 1 ? 's' : ''}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <div className="font-bold text-slate-800">{t.author.name}</div>
-                        <div className="text-[10px] text-slate-400">
-                          {t.author.author_code || ''} {t.author.city ? `(${t.author.city})` : ''}
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-5 whitespace-nowrap space-y-1">
-                        <div className="font-medium text-slate-700">
-                          {t.category.replace(/_/g, ' ')}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {t.ai_status === 'OK' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                              <Sparkles className="w-2.5 h-2.5" />
-                              AI Triaged
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                              Manual
-                            </span>
-                          )}
-                          {t.is_overridden && (
-                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-                              Overridden
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${getStatusBadge(
-                            t.status
-                          )}`}
-                        >
-                          {t.status.replace('_', ' ')}
-                        </span>
-                      </td>
-
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        {t.assignee ? (
-                          <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                            <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
-                              {t.assignee.name.charAt(0)}
-                            </div>
-                            <span className="truncate max-w-[120px]">{t.assignee.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-[11px]">Unassigned</span>
-                        )}
-                      </td>
-
-                      <td className="py-4 px-5 whitespace-nowrap text-right font-mono text-slate-400 text-xs">
+                    <div className="flex items-center gap-2 text-[11px] text-neutral-500">
+                      <Calendar className="w-3 h-3" />
+                      <span>
                         {new Date(t.created_at).toLocaleDateString('en-IN', {
                           month: 'short',
                           day: 'numeric',
                         })}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Subject & Preview */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                      {t.subject}
+                    </h3>
+                    <p className="text-xs text-neutral-400 line-clamp-1 mt-0.5">
+                      {t.description}
+                    </p>
+                  </div>
+
+                  {/* Bottom Context Line */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-neutral-900/80 text-xs text-neutral-400">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5 text-neutral-300">
+                        <User className="w-3.5 h-3.5 text-neutral-500" />
+                        <span>{t.author.name}</span>
+                        {t.author.author_code && (
+                          <span className="text-[10px] font-mono text-neutral-500">
+                            ({t.author.author_code})
+                          </span>
+                        )}
+                      </div>
+
+                      {t.book && (
+                        <div className="flex items-center gap-1 text-neutral-400">
+                          <BookOpen className="w-3.5 h-3.5 text-neutral-600" />
+                          <span className="truncate max-w-[200px]">{t.book.title}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-1 text-neutral-500 text-[11px]">
+                        <MessageSquare className="w-3 h-3" />
+                        <span>{t.replyCount}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {t.assignee ? (
+                        <span className="text-[11px] text-neutral-400">
+                          Assignee: <span className="text-white">{t.assignee.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-amber-400/80">Unassigned</span>
+                      )}
+
+                      <ArrowRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          /* ========================================================= */
+          /* STRUCTURED TABLE VIEW                                     */
+          /* ========================================================= */
+          <div className="bg-black rounded-2xl border border-neutral-800 overflow-hidden animate-fade-in">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-neutral-300 border-collapse">
+                <thead className="bg-neutral-950 border-b border-neutral-800 text-[11px] font-medium text-neutral-400">
+                  <tr>
+                    <th className="py-3 px-4">Priority</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 min-w-[260px]">Subject</th>
+                    <th className="py-3 px-4">Author</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Assignee</th>
+                    <th className="py-3 px-4 text-right">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-900">
+                  {filteredTickets.map((t) => {
+                    const isCritical = t.priority === 'CRITICAL';
+                    return (
+                      <tr
+                        key={t.id}
+                        className={`hover:bg-neutral-950/80 transition-colors ${
+                          isCritical ? 'bg-rose-950/10' : ''
+                        }`}
+                      >
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {renderPriorityBadge(t.priority)}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {renderStatusBadge(t.status)}
+                        </td>
+                        <td className="py-3 px-4 min-w-[260px]">
+                          <Link
+                            to={`/admin/tickets/${t.id}`}
+                            className="font-medium text-white hover:text-indigo-400 transition-colors block text-xs"
+                          >
+                            {t.subject}
+                          </Link>
+                          {t.book && (
+                            <span className="text-[11px] text-neutral-500 truncate block mt-0.5">
+                              {t.book.title}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="text-white font-medium">{t.author.name}</div>
+                          <div className="text-[10px] text-neutral-500 font-mono">
+                            {t.author.author_code || ''}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-neutral-400">
+                          {t.category.replace(/_/g, ' ')}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {t.assignee ? (
+                            <span className="text-white text-xs">{t.assignee.name}</span>
+                          ) : (
+                            <span className="text-amber-400/80 text-[11px]">Unassigned</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap text-right font-mono text-neutral-500 text-[11px]">
+                          {new Date(t.created_at).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center text-slate-400">
+        <div className="bg-black rounded-2xl border border-neutral-800 p-12 text-center text-xs text-neutral-400">
           No tickets found matching the selected filters.
         </div>
       )}
