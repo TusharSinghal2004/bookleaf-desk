@@ -10,6 +10,15 @@
 
 ---
 
+### 🌐 Live Deployment & Documentation Links
+- **Live Demo**: [https://leafdesk.vercel.app](https://leafdesk.vercel.app/)
+- **Live Interactive API Docs**: [https://leafdesk-api.onrender.com/api/docs](https://leafdesk-api.onrender.com/api/docs)
+- **Quick Run Guide**: [HOW_TO_RUN.md](HOW_TO_RUN.md)
+- **Notes & Assumptions**: [NOTES.md](NOTES.md)
+- **Engineering Approach & Trade-Offs**: [WRITEUP.md](WRITEUP.md)
+
+---
+
 ## 1. Project Overview
 
 BookLeaf Publishing processes 1,200+ titles monthly across a 22,000+ catalog. Authors reach out regarding royalties, book stages, ISBN issues, and print quality. This solution eliminates support backlogs through:
